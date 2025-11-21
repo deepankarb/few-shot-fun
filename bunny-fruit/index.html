@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Virtual Friends</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+            transition: background-color 0.5s;
+        }
+
+        /* The Stage */
+        #game-container {
+            text-align: center;
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Character Display */
+        #character {
+            font-size: 150px;
+            cursor: pointer;
+            user-select: none;
+            display: inline-block;
+            transition: transform 0.2s;
+            position: relative;
+            z-index: 2;
+            filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.2));
+            transform-origin: bottom center; 
+            height: 180px; /* Fixed height to prevent jitter during fruit swap */
+            line-height: 180px;
+        }
+
+        /* Reaction Text */
+        #reaction {
+            height: 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b6b;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-bottom: 10px;
+        }
+
+        /* ----- CONTROLS ----- */
+        
+        /* 1. Character Selector (Top) */
+        .char-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.8);
+            padding: 10px;
+            border-radius: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .char-btn {
+            font-size: 24px;
+            border: 2px solid transparent;
+            background: none;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 5px;
+            transition: all 0.2s;
+        }
+        .char-btn:hover { background-color: #eee; }
+        .char-btn.active { border-color: #88c0d0; background-color: #e6f7ff; transform: scale(1.1); }
+
+        /* 2. Rainbow Fruit Snacks (Middle) */
+        .snack-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px auto;
+            background: rgba(255,255,255,0.5);
+            padding: 8px;
+            border-radius: 30px;
+            width: fit-content;
+        }
+        
+        .fruit-btn {
+            font-size: 28px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid #ddd;
+            background: white;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fruit-btn:active { transform: scale(0.9); }
+        /* Rainbow Borders */
+        .f-red { border-color: #ffadad; }
+        .f-orange { border-color: #ffd6a5; }
+        .f-yellow { border-color: #fdffb6; }
+        .f-green { border-color: #caffbf; }
+        .f-purple { border-color: #bdb2ff; }
+
+
+        /* 3. Main Actions (Bottom) */
+        .action-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            background-color: #ffffff;
+            border: 4px solid #88c0d0;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 35px;
+            cursor: pointer;
+            box-shadow: 0 6px #6aaebf;
+            transition: active 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:active {
+            box-shadow: 0 2px #6aaebf;
+            transform: translateY(4px);
+        }
+
+        /* ----- ANIMATIONS ----- */
+        @keyframes bouncyJump {
+            0%   { transform: scale(1, 1) translateY(0); }
+            10%  { transform: scale(1.1, 0.9) translateY(0); } 
+            30%  { transform: scale(0.9, 1.1) translateY(-50px); } 
+            50%  { transform: scale(1, 1) translateY(-120px); } 
+            70%  { transform: scale(0.9, 1.1) translateY(-50px); } 
+            90%  { transform: scale(1.1, 0.9) translateY(0); } 
+            100% { transform: scale(1, 1) translateY(0); } 
+        }
+
+        @keyframes wiggle {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes munch {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.0); } /* Chewing pulse */
+            100% { transform: scale(0.8); }
+        }
+
+        .jumping { animation: bouncyJump 0.7s ease-in-out; }
+        .wiggling { animation: wiggle 0.5s ease-in-out; }
+        /* Munching is faster and repeats */
+        .munching { animation: munch 0.25s infinite ease-in-out; font-size: 120px !important; } 
+
+        /* Floating Hearts */
+        .heart {
+            position: absolute;
+            color: #ff69b4;
+            font-size: 24px;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-120px) scale(1.5); }
+        }
+        
+        #mute-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.5;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="mute-toggle" onclick="toggleMute()">🔊</button>
+
+    <div id="game-container">
+        <div class="char-selector">
+            <button class="char-btn active" onclick="setChar('bunny')" aria-label="Bunny">🐰</button>
+            <button class="char-btn" onclick="setChar('bear')" aria-label="Bear">🐻</button>
+            <button class="char-btn" onclick="setChar('giraffe')" aria-label="Giraffe">🦒</button>
+            <button class="char-btn" onclick="setChar('parrot')" aria-label="Parrot">🦜</button>
+        </div>
+
+        <div id="reaction">Hello!</div>
+
+        <div id="character" onclick="doMainAction('tickle')">🐰</div>
+
+        <div class="snack-bar">
+            <button class="fruit-btn f-red" onclick="feedFruit('🍎', 'Red')" aria-label="Apple">🍎</button>
+            <button class="fruit-btn f-orange" onclick="feedFruit('🍊', 'Orange')" aria-label="Orange">🍊</button>
+            <button class="fruit-btn f-yellow" onclick="feedFruit('🍌', 'Yellow')" aria-label="Banana">🍌</button>
+            <button class="fruit-btn f-green" onclick="feedFruit('🍐', 'Green')" aria-label="Pear">🍐</button>
+            <button class="fruit-btn f-purple" onclick="feedFruit('🍇', 'Purple')" aria-label="Grapes">🍇</button>
+        </div>
+
+        <div class="action-controls">
+            <button class="action-btn" onclick="doMainAction('jump')" aria-label="Jump">⬆️</button>
+            <button class="action-btn" onclick="doMainAction('tickle')" aria-label="Love">❤️</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const characters = {
+            bunny:   { emoji: '🐰', bg: '#f0f8ff', pitch: 1.5, reaction: "Boing!" },
+            bear:    { emoji: '🐻', bg: '#fff5e6', pitch: 0.5, reaction: "Thud!" },
+            giraffe: { emoji: '🦒', bg: '#ffffe0', pitch: 1.0, reaction: "Woo!" },
+            parrot:  { emoji: '🦜', bg: '#e0ffe0', pitch: 2.0, reaction: "Squawk!" }
+        };
+
+        let currentCharKey = 'bunny';
+        const charDisplay = document.getElementById('character');
+        const reaction = document.getElementById('reaction');
+        let isAnimating = false;
+        let isMuted = false;
+
+        // --- AUDIO SYSTEM ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const now = audioCtx.currentTime;
+            const pitchMod = characters[currentCharKey].pitch; 
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200 * pitchMod, now); 
+                osc.frequency.linearRampToValueAtTime(500 * pitchMod, now + 0.2); 
+                osc.frequency.linearRampToValueAtTime(200 * pitchMod, now + 0.6);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } 
+            else if (type === 'feed') {
+                // Crunchy sound
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150 * pitchMod, now);
+                osc.frequency.exponentialRampToValueAtTime(100 * pitchMod, now + 0.1);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+
+                // Second crunch
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.type = 'sawtooth';
+                    osc2.frequency.setValueAtTime(150 * pitchMod, now + 0.15);
+                    gain2.gain.setValueAtTime(0.3, now + 0.15);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc2.start(now + 0.15); osc2.stop(now + 0.3);
+                }, 150);
+            } 
+            else if (type === 'tickle') {
+                osc.type = 'triangle';
+                let base = 600 * pitchMod; 
+                osc.frequency.setValueAtTime(base, now);
+                osc.frequency.linearRampToValueAtTime(base + 300, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+
+                setTimeout(() => {
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(base + 300, now + 0.1);
+                    osc2.frequency.linearRampToValueAtTime(base + 600, now + 0.2);
+                    gain2.gain.setValueAtTime(0.1, now + 0.1);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc2.start(now + 0.1); osc2.stop(now + 0.3);
+                }, 100);
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('mute-toggle');
+            btn.innerText = isMuted ? '🔇' : '🔊';
+            btn.style.opacity = isMuted ? '1' : '0.5';
+        }
+
+        // --- GAME LOGIC ---
+
+        function setChar(key) {
+            if (isAnimating) return;
+            currentCharKey = key;
+            const charData = characters[key];
+            charDisplay.innerText = charData.emoji;
+            document.body.style.backgroundColor = charData.bg;
+            
+            document.querySelectorAll('.char-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick').includes(key));
+            });
+
+            // Small pop animation
+            charDisplay.style.transform = "scale(0.8)";
+            setTimeout(() => charDisplay.style.transform = "scale(1)", 150);
+            showReaction("Hi!");
+        }
+
+        // New Function specifically for feeding fruits
+        function feedFruit(fruitEmoji, colorName) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            playSound('feed');
+            showReaction(`Mmm, ${colorName}!`);
+
+            // Swap animal for fruit briefly during animation
+            const originalEmoji = characters[currentCharKey].emoji;
+            charDisplay.innerText = fruitEmoji; 
+            charDisplay.classList.add('munching');
+
+            setTimeout(() => {
+                charDisplay.classList.remove('munching');
+                charDisplay.innerText = originalEmoji; // Restore animal
+                isAnimating = false;
+            }, 1000); // Wait for 3 crunches roughly
+        }
+
+        // Main Actions (Jump/Tickle)
+        function doMainAction(action) {
+            if (isAnimating) return;
+            isAnimating = true;
+
+            playSound(action);
+
+            if (action === 'jump') {
+                charDisplay.classList.add('jumping');
+                showReaction(characters[currentCharKey].reaction);
+                setTimeout(() => {
+                    charDisplay.classList.remove('jumping');
+                    isAnimating = false;
+                }, 700);
+            } 
+            else if (action === 'tickle') {
+                charDisplay.classList.add('wiggling');
+                showReaction("Hehe!");
+                createHearts();
+                setTimeout(() => {
+                    charDisplay.classList.remove('wiggling');
+                    isAnimating = false;
+                }, 500);
+            }
+        }
+
+        function showReaction(text) {
+            reaction.innerText = text;
+            reaction.style.opacity = 1;
+            setTimeout(() => reaction.style.opacity = 0, 1500);
+        }
+
+        function createHearts() {
+            for (let i = 0; i < 5; i++) {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.innerText = '❤️';
+                const rect = charDisplay.getBoundingClientRect();
+                const randomX = (Math.random() * 100) - 50; 
+                heart.style.left = (rect.width / 2 + randomX) + 'px';
+                heart.style.top = (rect.height / 2) + 'px';
+                charDisplay.appendChild(heart);
+                setTimeout(() => heart.remove(), 1000);
+            }
+        }
+    </script>
+</body>
+</html>
