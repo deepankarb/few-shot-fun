@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Toddler Keyboard Fun</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background-color 0.5s ease;
+        }
+
+        /* Flex container to center everything */
+        #app {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            text-align: center;
+            cursor: pointer; /* Indicates tappable */
+            user-select: none; /* Prevent text selection on mashing */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* The Big Emoji */
+        #emoji-display {
+            font-size: 35vmin; /* vmin makes it responsive on both portrait/landscape */
+            line-height: 1;
+            filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2));
+            animation: none;
+        }
+
+        /* The Letter/Number Display */
+        #char-display {
+            font-size: 15vmin;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+
+        /* The Name of the object */
+        #word-display {
+            font-size: 8vmin;
+            color: white;
+            margin-top: 10px;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-transform: capitalize;
+        }
+
+        /* Start Overlay */
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FFD700; /* Gold */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        #start-overlay h1 {
+            font-size: 8vmin;
+            color: #333;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+
+        .play-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 5vmin;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .animate-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Footer instructions */
+        .hint {
+            position: absolute;
+            bottom: 10px;
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Start Screen (Needed to unlock Audio) -->
+    <div id="start-overlay">
+        <h1>Toddler Keys! 🎹</h1>
+        <button class="play-btn">Click to Play</button>
+    </div>
+
+    <!-- Game Area -->
+    <div id="app">
+        <div id="emoji-display" class="animate-pop">👋</div>
+        <div id="char-display">Hi!</div>
+        <div id="word-display">Press any Key</div>
+        <div class="hint">Press keys or tap screen</div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        
+        // A mapping of keys to Emojis and Words
+        const keyMap = {
+            'a': { emoji: '🍎', word: 'Apple' },
+            'b': { emoji: '🐻', word: 'Bear' },
+            'c': { emoji: '🍪', word: 'Cookie' },
+            'd': { emoji: '🐶', word: 'Dog' },
+            'e': { emoji: '🐘', word: 'Elephant' },
+            'f': { emoji: '🐸', word: 'Frog' },
+            'g': { emoji: '🦒', word: 'Giraffe' },
+            'h': { emoji: '🐴', word: 'Horse' },
+            'i': { emoji: '🍦', word: 'Ice Cream' },
+            'j': { emoji: '🧃', word: 'Juice' },
+            'k': { emoji: '🪁', word: 'Kite' },
+            'l': { emoji: '🦁', word: 'Lion' },
+            'm': { emoji: '🐵', word: 'Monkey' },
+            'n': { emoji: '🌙', word: 'Night' },
+            'o': { emoji: '🐙', word: 'Octopus' },
+            'p': { emoji: '🐼', word: 'Panda' },
+            'q': { emoji: '👑', word: 'Queen' },
+            'r': { emoji: '🐰', word: 'Rabbit' },
+            's': { emoji: '⭐', word: 'Star' },
+            't': { emoji: '🐯', word: 'Tiger' },
+            'u': { emoji: '🦄', word: 'Unicorn' },
+            'v': { emoji: '🎻', word: 'Violin' },
+            'w': { emoji: '🍉', word: 'Watermelon' },
+            'x': { emoji: '🦴', word: 'X-Ray' }, // Close enough for toddler logic
+            'y': { emoji: '🧶', word: 'Yarn' },
+            'z': { emoji: '🦓', word: 'Zebra' },
+            '1': { emoji: '🎈', word: 'One' },
+            '2': { emoji: '👀', word: 'Two' },
+            '3': { emoji: '☘️', word: 'Three' },
+            '4': { emoji: '🍀', word: 'Four' },
+            '5': { emoji: '🖐️', word: 'Five' },
+            '6': { emoji: '🎲', word: 'Six' },
+            '7': { emoji: '🌈', word: 'Seven' },
+            '8': { emoji: '🎱', word: 'Eight' },
+            '9': { emoji: '🌻', word: 'Nine' },
+            '0': { emoji: '🍩', word: 'Zero' },
+            ' ': { emoji: '🚀', word: 'Blast Off!' },
+            'enter': { emoji: '🎉', word: 'Party!' }
+        };
+
+        // Fallback list for undefined keys or random taps
+        const funList = [
+            { emoji: '🍕', word: 'Pizza' },
+            { emoji: '🦋', word: 'Butterfly' },
+            { emoji: '🚒', word: 'Truck' },
+            { emoji: '🦕', word: 'Dino' },
+            { emoji: '🎸', word: 'Guitar' },
+            { emoji: '🍰', word: 'Cake' },
+            { emoji: '🚗', word: 'Car' },
+            { emoji: '🌞', word: 'Sun' },
+            { emoji: '⚽', word: 'Ball' }
+        ];
+
+        // Bright, toddler-friendly background colors
+        const colors = [
+            '#FF6B6B', // Pastel Red
+            '#4ECDC4', // Turquoise
+            '#45B7D1', // Blue
+            '#FFA07A', // Light Salmon
+            '#98FB98', // Pale Green
+            '#DDA0DD', // Plum
+            '#F0E68C', // Khaki
+            '#87CEFA', // Light Sky Blue
+            '#FF69B4'  // Hot Pink
+        ];
+
+        // --- DOM Elements ---
+        const app = document.getElementById('app');
+        const emojiDisplay = document.getElementById('emoji-display');
+        const charDisplay = document.getElementById('char-display');
+        const wordDisplay = document.getElementById('word-display');
+        const startOverlay = document.getElementById('start-overlay');
+
+        let isPlaying = false;
+        
+        // Setup Speech Synthesis (Text to Speech)
+        const synth = window.speechSynthesis;
+        let selectedVoice = null;
+
+        // Attempt to find a female voice
+        function loadVoices() {
+            const voices = synth.getVoices();
+            // Priority list for common female voices across Windows/Mac/Chrome/Android
+            selectedVoice = voices.find(voice => voice.name.includes('Google US English')) 
+                         || voices.find(voice => voice.name.includes('Microsoft Zira'))
+                         || voices.find(voice => voice.name.includes('Samantha'))
+                         || voices.find(voice => voice.name.toLowerCase().includes('female'))
+                         || voices.find(voice => voice.lang.startsWith('en')) // Fallback to any English
+                         || voices[0];
+        }
+
+        // Load voices immediately and also when the browser notifies they are ready (Chrome)
+        loadVoices();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        // --- Functions ---
+
+        function speak(text) {
+            if (synth.speaking) {
+                synth.cancel(); // Stop previous sound so new one plays immediately
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            utterance.rate = 0.9; // Slightly slower for clarity
+            utterance.pitch = 1.2; // Slightly higher pitch sounds friendlier/more feminine
+            synth.speak(utterance);
+        }
+
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function updateDisplay(char, data) {
+            // Change Background
+            document.body.style.backgroundColor = getRandomColor();
+
+            // Update Content
+            charDisplay.innerText = char.toUpperCase();
+            emojiDisplay.innerText = data.emoji;
+            wordDisplay.innerText = data.word;
+
+            // Speak
+            // If it's a letter, say "A... Apple". If it's random, just say the word.
+            if (char.length === 1 && /[a-zA-Z]/.test(char)) {
+                 speak(`${char}... ${data.word}`);
+            } else {
+                 speak(data.word);
+            }
+
+            // Trigger Animation (Reflow hack to restart CSS animation)
+            emojiDisplay.classList.remove('animate-pop');
+            void emojiDisplay.offsetWidth; // trigger reflow
+            emojiDisplay.classList.add('animate-pop');
+        }
+
+        function handleInput(key) {
+            const lowerKey = key.toLowerCase();
+            
+            if (keyMap[lowerKey]) {
+                updateDisplay(key === ' ' ? 'Space' : key, keyMap[lowerKey]);
+            } else {
+                // Pick a random fun item for unmapped keys
+                const randomItem = funList[Math.floor(Math.random() * funList.length)];
+                // If it's a single printable character, show it, otherwise show empty
+                const displayChar = key.length === 1 ? key : "Fun!";
+                updateDisplay(displayChar, randomItem);
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // 1. Start Game
+        startOverlay.addEventListener('click', () => {
+            startOverlay.style.display = 'none';
+            isPlaying = true;
+            // Play a silent sound to unlock audio context on iOS
+            speak(''); 
+            updateDisplay('Go!', { emoji: '🎮', word: 'Let\'s Play!' });
+        });
+
+        // 2. Keyboard Press
+        document.addEventListener('keydown', (e) => {
+            if (!isPlaying) return;
+            handleInput(e.key);
+        });
+
+        // 3. Touch/Click (For tablets or random fun)
+        // We prevent default to stop double-firing on some devices, 
+        // but we need to check if the start overlay is visible first.
+        app.addEventListener('touchstart', (e) => {
+            if (!isPlaying) return;
+            e.preventDefault(); // Stop scrolling/zooming
+            triggerRandom();
+        }, { passive: false });
+
+        app.addEventListener('click', (e) => {
+            if (!isPlaying) return;
+            // Only trigger if not a touch event (prevent double fire on hybrids)
+            triggerRandom();
+        });
+
+        function triggerRandom() {
+            // Simulate a random key press for tapping
+            const keys = Object.keys(keyMap);
+            // 80% chance of alphabet, 20% chance of numbers/fun
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            handleInput(randomKey);
+        }
+
+    </script>
+</body>
+</html>
